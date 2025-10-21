@@ -1,0 +1,59 @@
+<!doctype html><html lang="zh-CN"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>姓名转拼音 · Minimal App</title>
+<style>
+:root{--bg:#0b0c10;--card:#151821;--text:#e6e6e6;--muted:#9aa3af;--primary:#60a5fa}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+.wrap{max-width:860px;margin:32px auto;padding:0 16px}.title{font-size:24px;font-weight:700;margin-bottom:16px}
+.card{background:var(--card);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:18px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field{display:flex;flex-direction:column;gap:8px}
+label{font-size:13px;color:var(--muted)}input[type=text]{background:#1b2030;border:1px solid #263147;color:var(--text);border-radius:12px;padding:12px 14px;outline:none}
+.out{font-size:18px;padding:12px 14px;background:#101420;border:1px dashed #263147;border-radius:12px;min-height:24px}
+.muted{color:var(--muted);font-size:12px}.btn{background:var(--primary);border:none;color:#0b1020;padding:10px 14px;border-radius:12px;cursor:pointer;font-weight:700}
+.btn:active{transform:translateY(1px)}.stack{display:flex;gap:10px;flex-wrap:wrap}
+.pill{padding:8px 10px;border-radius:999px;background:#1b2030;border:1px solid #263147;color:var(--text);cursor:pointer}
+.pill.active{background:#23314a;border-color:#395783}.footer{margin-top:18px;color:var(--muted);font-size:12px}
+@media (max-width:720px){.row{grid-template-columns:1fr}}
+</style></head><body>
+<div class="wrap"><div class="title">姓名转拼音 · Minimal App</div><div class="card">
+<div class="row">
+  <div class="field">
+    <label>中文姓名</label>
+    <input id="name" type="text" placeholder="例如：欧阳娜娜 / 张三 / 曾国藩"/>
+    <div class="muted">自动识别复姓与常见姓氏多音字（单/曾/解/区/乐/柏/任/翟 等）。</div>
+  </div>
+  <div class="field">
+    <label>结果</label>
+    <div id="result" class="out">—</div>
+    <div class="stack"><button id="copy" class="btn">复制结果</button></div>
+  </div>
+</div>
+<div class="row" style="margin-top:14px">
+  <div class="field"><label>格式</label><div class="stack" id="mode">
+    <span class="pill active" data-mode="full">全拼</span><span class="pill" data-mode="initials">首字母</span></div></div>
+  <div class="field"><label>声调</label><div class="stack" id="tone">
+    <span class="pill active" data-tone="none">无</span><span class="pill" data-tone="num">数字</span><span class="pill" data-tone="mark">符号</span></div></div>
+</div>
+<div class="row" style="margin-top:14px">
+  <div class="field"><label>大小写</label><div class="stack" id="case">
+    <span class="pill active" data-case="capitalize">每词首字母大写</span><span class="pill" data-case="lower">全小写</span><span class="pill" data-case="upper">全大写</span></div></div>
+  <div class="field"><label>分隔符</label><div class="stack" id="sep">
+    <span class="pill active" data-sep=" ">空格</span><span class="pill" data-sep="-">连字符</span><span class="pill" data-sep="">无</span></div></div>
+</div>
+<div class="footer">API: <code>POST /api/pinyin</code>（同源 5000 端口）。</div>
+</div></div>
+<script>
+const $=s=>document.querySelector(s), $$=s=>Array.from(document.querySelectorAll(s));
+const state={name:"",tone:"none",case:"capitalize",sep:" ",mode:"full"};
+function bind(group,key){ $$(group+" .pill").forEach(p=>p.onclick=()=>{ $$(group+" .pill").forEach(x=>x.classList.remove("active")); p.classList.add("active"); state[key]=p.dataset[key]; run(); }) }
+bind("#mode","mode"); bind("#tone","tone"); bind("#case","case"); bind("#sep","sep");
+$("#name").oninput=e=>{ state.name=e.target.value; run(); };
+$("#copy").onclick=async()=>{ const t=$("#result").innerText.trim(); if(!t||t==="—")return; try{ await navigator.clipboard.writeText(t); $("#copy").innerText="已复制！"; setTimeout(()=>$("#copy").innerText="复制结果",1200);}catch{} };
+async function run(){ if(!state.name.trim()){ $("#result").innerText="—"; return; }
+  try{
+    const r=await fetch("/api/pinyin",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name:state.name,tone:state.tone,case:state.case,sep:state.sep,mode:state.mode})});
+    const j=await r.json(); $("#result").innerText=j.ok?j.result:(j.error||"错误");
+  }catch(e){ $("#result").innerText="（无法连接后端 /api/pinyin）"; }
+}
+</script></body></html>
